@@ -1,7 +1,8 @@
 ﻿// Copyright (c) STUDIO MeowToon. All rights reserved.
-// Licensed under the GPL v2.0 license. See LICENSE text in the project root for license information.
+// Licensed under the MIT License. See LICENSE text in the project root for license information.
 
 using UnityEngine;
+using UnityEditor;
 using static UnityEngine.GameObject;
 using UniRx;
 using UniRx.Triggers;
@@ -24,6 +25,8 @@ namespace GameDev {
 
         GameObject _player_object;
 
+        SphereCollider _sphere_collider; // 索敵用のコライダー
+
         ///////////////////////////////////////////////////////////////////////////////////////////////
         // Properties [noun, adjectives] 
 
@@ -35,6 +38,7 @@ namespace GameDev {
         // Awake is called when the script instance is being loaded.
         void Awake() {
             _player_object = Find(name: "Player"); // Player オブジェクトの参照を取得
+            _sphere_collider = GetComponent<SphereCollider>(); // Sphere コライダーの参照を取得
         }
 
         // Start is called before the first frame update.
@@ -80,7 +84,7 @@ namespace GameDev {
                                     int random5 = Mathf.FloorToInt(f: Random.Range(minInclusive: 1.0f, maxInclusive: 6.0f));
                                     if (random5 % 2 == 1) { // 偶数なら
                                         // ランダムな方向を向く
-                                        transform.LookAt(worldPosition: new Vector3(
+                                        transform.LookAt(worldPosition: new(
                                             x: transform.position.x + random3,
                                             y: transform.position.y,
                                             z: transform.position.z + random4
@@ -129,7 +133,7 @@ namespace GameDev {
                     NotPiece)
                 .Subscribe(onNext: _ => {
                     // Player オブジェクトの方向に回転する
-                    transform.LookAt(worldPosition: new Vector3(
+                    transform.LookAt(worldPosition: new(
                         x: _player_object.transform.position.x,
                         y: transform.position.y,
                         z: _player_object.transform.position.z
@@ -180,6 +184,21 @@ namespace GameDev {
                     chasing = false; // 追跡フラグOFF
                 }).AddTo(gameObjectComponent: this);
         }
+
+#if UNITY_EDITOR
+        void OnDrawGizmos() {
+            if (NotPiece) {
+                Handles.color = new Color(r: 1, g: 0, b: 0, a: 0.1f);
+                Handles.DrawSolidArc(
+                    center: transform.position,
+                    normal: Vector3.up,
+                    from: Quaternion.Euler(x: 0f, y: -SEARCH_ANGLE, z: 0f) * transform.forward,
+                    angle: SEARCH_ANGLE * 2f,
+                    radius: _sphere_collider.radius
+                );
+            }
+        }
+#endif
 
         ///////////////////////////////////////////////////////////////////////////////////////////////
         // private Methods [verb]
