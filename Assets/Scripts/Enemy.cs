@@ -63,8 +63,8 @@ namespace GameDev {
             bool searching = true; // 索敵中フラグ
             bool rotate = false; // 回転中フラグ
             bool stop = false; // 停止フラグ
-            this.UpdateAsObservable()
-                .Where(predicate: _ => 
+            _ = this.UpdateAsObservable()
+                .Where(predicate: _ =>
                     searching && !rotate && // 索敵中フラグONかつ回転中ではない場合
                     NotPiece)
                 .Subscribe(onNext: _ => {
@@ -84,16 +84,32 @@ namespace GameDev {
                                     int random5 = Mathf.FloorToInt(f: Random.Range(minInclusive: 1.0f, maxInclusive: 6.0f));
                                     if (random5 % 2 == 1) { // 偶数なら
                                         // ランダムな方向を向く
-                                        transform.LookAt(worldPosition: new(
-                                            x: transform.position.x + random3,
-                                            y: transform.position.y,
-                                            z: transform.position.z + random4
-                                        ));
-                                        stop = false; rotate = false;
-                                    } else { // 奇数ならそのままの方向を維持
+                                        Vector3 random_direction = new Vector3(
+                                            x: transform.position.x + random3, //Random.Range(minInclusive: -1.0f, maxInclusive: 1.0f),
+                                            y: transform.position.y, //0.0f, 
+                                            z: transform.position.z + random4 //Random.Range(minInclusive: -1.0f, maxInclusive: 1.0f)
+                                        ).normalized;
+                                        Quaternion target_rotation = Quaternion.LookRotation(forward: random_direction);
+                                        float elapsed_time = 0.0f;
+                                        Quaternion start_rotation = transform.rotation;
+                                        Observable.EveryUpdate()
+                                            .TakeWhile(predicate: _ => elapsed_time < 1.0f)
+                                            .Subscribe(onNext: __ => {
+                                                transform.rotation = Quaternion.Slerp(
+                                                    a: start_rotation,
+                                                    b: target_rotation,
+                                                    t: elapsed_time
+                                                );
+                                                elapsed_time += Time.deltaTime * 1.0f; // rotationSpeed の代わりに具体的な値を指定
+                                            }, onCompleted: () => {
+                                                stop = false; rotate = false;
+                                            })
+                                            .AddTo(gameObjectComponent: this);
+                                    }
+                                    else { // 奇数ならそのままの方向を維持
                                         stop = false; rotate = false;
                                     }
-                            }).AddTo(gameObjectComponent: this);
+                                }).AddTo(gameObjectComponent: this);
                         }).AddTo(gameObjectComponent: this);
                 }).AddTo(gameObjectComponent: this);
 
